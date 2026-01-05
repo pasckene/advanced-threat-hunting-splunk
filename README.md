@@ -182,7 +182,8 @@ Execution of **Base64-encoded PowerShell**, commonly used to evade detection.
 **Attack Command:**
 
 ```powershell
-powershell -enc SQBFAFgAIAAoAG4AZQB3AC0AbwBiAGoAZQBjAHQAIABuAGUAdAAuAHcAZQBiAGMAbABpAGUAbgB0ACkA
+powershell -EncodedCommand bgBvAHQAZQBwAGEAZAA=
+
 ```
 
 ### 🔹 Why Attackers Do This
